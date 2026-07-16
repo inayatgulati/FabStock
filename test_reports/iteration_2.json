@@ -1,0 +1,25 @@
+{
+  "summary": "Regression + new-feature testing for Zoho Sync scaffolding and Cash Sales. All 17 backend pytest tests pass (12 previous + 5 new). Zoho page and cash-sale UI flows verified end-to-end via Playwright: Not Connected state with org 11000077883 & Canada (.ca), Sync Now disabled, instructions panel visible; cash sale created (CASH-1025) with new buyer, $320 no-tax total, CASH source badge shows on Invoices grid, inventory deducted, toast confirmed.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py list_invoices sorts by date only (YYYY-MM-DD string), so same-day invoices appear in insertion (natural) order — the newest CASH sale is NOT guaranteed to be row 0. Consider secondary sort by created_at DESC for reliable UX.",
+    "compute_customer_analytics does not tag/split cash vs manual vs zoho revenue — analytics currently treats all sources equally. If the owner needs to see 'cash-only revenue' separately, add a breakdown per source.",
+    "POST /api/cash-sales trusts client-provided qty for existing customer without checking product stock_qty > 0 (allows stock to go negative). Same is true for /api/invoices. Consider a validation to prevent negative inventory or at least warn.",
+    "zoho_scheduler starts on every worker; in multi-worker setups this can double-sync. Consider a distributed lock or leader-only flag.",
+    "Cash customer creation matches by name+is_cash=True — two walk-ins with identical names collapse into one customer record. Acceptable trade-off, but worth noting."
+  ],
+  "updated_files": ["/app/backend/tests/backend_test.py"],
+  "success_rate": {"backend": "100% (17/17)", "frontend": "100% (all requested flows verified)"},
+  "test_credentials": "owner@fabsupply.ca / FabSupply2026! (auth working via httpOnly cookies)",
+  "seed_data_creation": "Two new cash sales created during tests: CASH-1025 (TEST_Walkin_UI_...) via UI flow + CASH-* records for pytest cases. Also 1 backend invoice test. Pre-existing CASH-1021 (Walk-in Joe) from manual curl remains.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Zoho creds still absent by design — do NOT flag Not Connected / 400 on /api/zoho/sync as a bug. When creds land, re-verify /zoho/status returns configured:true and Sync Now succeeds (baseline import path in zoho_sync.py). Cash sales end-to-end (backend + UI) fully validated. Invoices list sort ordering by date-only means newest same-day rows are not necessarily on top; use invoice_number match instead of row index for assertions.",
+  "rca of the issue": "No blocking issues found."
+}

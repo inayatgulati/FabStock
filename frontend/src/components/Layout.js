@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Package, Users, FileText, LogOut, Boxes } from "lucide-react";
+import { LayoutDashboard, Package, Users, FileText, LogOut, Boxes, RefreshCw } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 const nav = [
@@ -7,6 +7,7 @@ const nav = [
   { to: "/inventory", label: "Inventory", icon: Package },
   { to: "/customers", label: "Customers", icon: Users },
   { to: "/invoices", label: "Invoices", icon: FileText },
+  { to: "/zoho", label: "Zoho Sync", icon: RefreshCw },
 ];
 
 export const Layout = ({ children }) => {

@@ -138,6 +138,81 @@ class TestInvoices:
         assert p2["stock_qty"] == before - 2
 
 
+# ---------------- Zoho ----------------
+class TestZoho:
+    def test_status_not_configured(self, auth_client):
+        r = auth_client.get(f"{API}/zoho/status")
+        assert r.status_code == 200
+        d = r.json()
+        assert d["configured"] is False
+        assert d["org_id"] == "11000077883"
+        assert d["baseline_done"] is False
+        assert "zoho_invoice_count" in d
+
+    def test_sync_returns_400_when_not_configured(self, auth_client):
+        r = auth_client.post(f"{API}/zoho/sync")
+        assert r.status_code == 400
+        assert "not configured" in r.json()["detail"].lower()
+
+
+# ---------------- Cash Sales ----------------
+class TestCashSales:
+    def test_cash_sale_new_buyer_deducts_stock_no_tax(self, auth_client):
+        prods = auth_client.get(f"{API}/products").json()
+        p = next(x for x in prods if x["stock_qty"] > 3)
+        before = p["stock_qty"]
+        buyer = f"TEST_Walkin_{int(time.time())}"
+        r = auth_client.post(f"{API}/cash-sales", json={
+            "customer_name": buyer,
+            "items": [{"product_id": p["id"], "qty": 2}],
+        })
+        assert r.status_code == 200, r.text
+        inv = r.json()
+        assert inv["source"] == "cash"
+        assert inv["off_books"] is True
+        assert inv["tax"] == 0.0
+        assert inv["invoice_number"].startswith("CASH-")
+        assert inv["total"] == round(p["price"] * 2, 2)
+        # stock deducted
+        p2 = next(x for x in auth_client.get(f"{API}/products").json() if x["id"] == p["id"])
+        assert p2["stock_qty"] == before - 2
+        # cash customer auto-created & appears in customers list
+        custs = auth_client.get(f"{API}/customers").json()
+        cash_cust = next((c for c in custs if c["name"] == buyer), None)
+        assert cash_cust is not None
+        # customer analytics reflects the sale
+        detail = auth_client.get(f"{API}/customers/{cash_cust['id']}").json()
+        assert detail["analytics"]["order_count"] >= 1
+        assert any(i["source"] == "cash" for i in detail["invoices"])
+
+    def test_cash_sale_existing_customer(self, auth_client):
+        custs = auth_client.get(f"{API}/customers").json()
+        # pick a non-cash customer
+        cust = next(c for c in custs if not c.get("is_cash"))
+        prods = auth_client.get(f"{API}/products").json()
+        p = next(x for x in prods if x["stock_qty"] > 2)
+        r = auth_client.post(f"{API}/cash-sales", json={
+            "customer_id": cust["id"],
+            "items": [{"product_id": p["id"], "qty": 1}],
+        })
+        assert r.status_code == 200
+        inv = r.json()
+        assert inv["source"] == "cash"
+        assert inv["tax"] == 0.0
+        assert inv["customer_id"] == cust["id"]
+        # appears in that customer's history
+        detail = auth_client.get(f"{API}/customers/{cust['id']}").json()
+        assert any(i["invoice_number"] == inv["invoice_number"] for i in detail["invoices"])
+
+    def test_cash_sale_no_customer_returns_400(self, auth_client):
+        prods = auth_client.get(f"{API}/products").json()
+        p = prods[0]
+        r = auth_client.post(f"{API}/cash-sales", json={
+            "items": [{"product_id": p["id"], "qty": 1}],
+        })
+        assert r.status_code == 400
+
+
 # ---------------- AI Insights ----------------
 class TestAI:
     def test_customer_insights(self, auth_client):

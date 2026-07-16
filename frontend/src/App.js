@@ -10,6 +10,7 @@ import Inventory from "@/pages/Inventory";
 import Customers from "@/pages/Customers";
 import CustomerDetail from "@/pages/CustomerDetail";
 import Invoices from "@/pages/Invoices";
+import ZohoSync from "@/pages/ZohoSync";
 
 const Protected = ({ children }) => {
   const { user } = useAuth();
@@ -35,6 +36,7 @@ function App() {
             <Route path="/customers" element={<Protected><Customers /></Protected>} />
             <Route path="/customers/:id" element={<Protected><CustomerDetail /></Protected>} />
             <Route path="/invoices" element={<Protected><Invoices /></Protected>} />
+            <Route path="/zoho" element={<Protected><ZohoSync /></Protected>} />
           </Routes>
         </BrowserRouter>
         <Toaster position="top-right" theme="dark" />

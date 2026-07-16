@@ -14,9 +14,11 @@ from datetime import datetime, timezone, timedelta
 from collections import defaultdict
 from bson import ObjectId
 import logging
+import asyncio
 import bcrypt
 import jwt
 import secrets
+import zoho_sync
 
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
@@ -398,9 +400,96 @@ async def create_invoice(data: InvoiceInput, user: dict = Depends(get_current_us
     doc = {"invoice_number": inv_number, "customer_id": data.customer_id,
            "customer_name": customer["name"], "date": data.date or datetime.now(timezone.utc).strftime("%Y-%m-%d"),
            "items": items, "subtotal": round(subtotal, 2), "tax": tax, "tax_rate": TAX_RATE,
-           "total": total, "notes": data.notes, "created_at": datetime.now(timezone.utc).isoformat()}
+           "total": total, "notes": data.notes, "source": "manual", "off_books": False,
+           "created_at": datetime.now(timezone.utc).isoformat()}
     res = await db.invoices.insert_one(doc)
     return serialize(await db.invoices.find_one({"_id": res.inserted_id}))
+
+
+# ---------------- Cash Sales (off-books) ----------------
+class CashSaleInput(BaseModel):
+    customer_id: Optional[str] = None
+    customer_name: Optional[str] = None
+    items: List[InvoiceItemInput]
+    date: Optional[str] = None
+    note: Optional[str] = None
+
+
+@api_router.post("/cash-sales")
+async def create_cash_sale(data: CashSaleInput, user: dict = Depends(get_current_user)):
+    # Resolve or create a cash-sale customer
+    cust_id = data.customer_id
+    cust_name = data.customer_name
+    if cust_id:
+        c = await db.customers.find_one({"_id": ObjectId(cust_id)})
+        if not c:
+            raise HTTPException(status_code=404, detail="Customer not found")
+        cust_name = c["name"]
+    elif cust_name:
+        existing = await db.customers.find_one({"name": cust_name, "is_cash": True})
+        if existing:
+            cust_id = str(existing["_id"])
+        else:
+            res = await db.customers.insert_one({"name": cust_name, "company": "Cash Buyer", "email": None,
+                                                 "phone": None, "address": None, "is_cash": True, "source": "cash",
+                                                 "created_at": datetime.now(timezone.utc).isoformat()})
+            cust_id = str(res.inserted_id)
+    else:
+        raise HTTPException(status_code=400, detail="Provide a customer or a cash buyer name")
+
+    items = []
+    subtotal = 0.0
+    for it in data.items:
+        product = await db.products.find_one({"_id": ObjectId(it.product_id)})
+        if not product:
+            raise HTTPException(status_code=404, detail=f"Product {it.product_id} not found")
+        line_total = round(product["price"] * it.qty, 2)
+        subtotal += line_total
+        items.append({"product_id": it.product_id, "name": product["name"], "sku": product["sku"],
+                      "qty": it.qty, "unit_price": product["price"], "line_total": line_total})
+        await db.products.update_one({"_id": ObjectId(it.product_id)}, {"$set": {"stock_qty": product["stock_qty"] - it.qty}})
+    count = await db.invoices.count_documents({})
+    doc = {"invoice_number": f"CASH-{1000 + count + 1}", "customer_id": cust_id, "customer_name": cust_name,
+           "date": data.date or datetime.now(timezone.utc).strftime("%Y-%m-%d"), "items": items,
+           "subtotal": round(subtotal, 2), "tax": 0.0, "tax_rate": 0.0, "total": round(subtotal, 2),
+           "notes": data.note, "source": "cash", "off_books": True,
+           "created_at": datetime.now(timezone.utc).isoformat()}
+    res = await db.invoices.insert_one(doc)
+    return serialize(await db.invoices.find_one({"_id": res.inserted_id}))
+
+
+# ---------------- Zoho Integration ----------------
+@api_router.get("/zoho/status")
+async def zoho_status(user: dict = Depends(get_current_user)):
+    state = await db.zoho_sync_state.find_one({"_id": "state"}) or {}
+    return {"configured": zoho_sync.is_configured(), "org_id": os.environ.get("ZOHO_ORG_ID"),
+            "region": os.environ.get("ZOHO_ACCOUNTS_URL"),
+            "baseline_done": state.get("baseline_done", False),
+            "last_sync": state.get("last_sync"), "last_result": state.get("last_result"),
+            "zoho_invoice_count": await db.invoices.count_documents({"source": "zoho"})}
+
+
+@api_router.post("/zoho/sync")
+async def zoho_sync_now(user: dict = Depends(get_current_user)):
+    if not zoho_sync.is_configured():
+        raise HTTPException(status_code=400, detail="Zoho is not configured. Add your Client ID, Client Secret and Refresh Token.")
+    try:
+        result = await zoho_sync.run_full_sync(db)
+        return result
+    except Exception as e:
+        logger.error(f"Zoho sync failed: {e}")
+        raise HTTPException(status_code=502, detail=f"Zoho sync failed: {str(e)}")
+
+
+async def zoho_scheduler():
+    while True:
+        await asyncio.sleep(300)
+        try:
+            if zoho_sync.is_configured():
+                await zoho_sync.run_full_sync(db)
+                logger.info("Zoho auto-sync completed")
+        except Exception as e:
+            logger.error(f"Zoho auto-sync error: {e}")
 
 
 # ---------------- Dashboard ----------------
@@ -580,6 +669,7 @@ async def startup():
     await db.login_attempts.create_index("identifier")
     await seed_admin()
     await seed_data()
+    asyncio.create_task(zoho_scheduler())
     cred = Path("/app/memory/test_credentials.md")
     cred.parent.mkdir(exist_ok=True)
     cred.write_text(
