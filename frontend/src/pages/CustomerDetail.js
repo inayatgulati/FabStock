@@ -37,10 +37,10 @@ export default function CustomerDetail() {
   const runAI = async () => {
     setLoadingAI(true);
     try {
-      const res = await api.get(`/insights/customer/${id}`);
+      const res = await api.get(`/insights/customer/${id}`, { timeout: 45000 });
       setInsights(res.data.insights);
     } catch (e) {
-      toast.error("AI insight generation failed");
+      toast.error("AI insight generation failed. Please try again.");
     }
     setLoadingAI(false);
   };
