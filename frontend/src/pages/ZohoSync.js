@@ -59,7 +59,7 @@ export default function ZohoSync() {
                 </div>
                 <div className="text-sm text-zinc-500">
                   {configured
-                    ? "Auto-syncing every 5 minutes. Invoices from Zoho update inventory & analytics automatically."
+                    ? "Auto-syncing every 30 minutes. New Zoho invoices update inventory & customer analytics automatically."
                     : "Add your OAuth credentials to the backend to activate sync."}
                 </div>
               </div>

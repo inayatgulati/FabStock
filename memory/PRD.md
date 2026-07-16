@@ -26,8 +26,8 @@ Business owner selling fabrication tools & materials to fabrication shops in Can
 - Invoices: create with line items, subtotal/HST/total, auto stock deduction
 - AI insights (Claude Sonnet 4.6): buying pattern / reorder predictions / upsell opportunities
 - Seed data: 10 fabrication products, 3 customers, ~18 invoices (9 months)
-- Zoho Books sync engine (zoho_sync.py): pulls contacts→customers, items→products, invoices→invoices; keeps app's own stock ledger, subtracts Zoho sales post-baseline; auto-sync every 5 min + Sync Now. Region Canada (.ca), Org 11000077883. PENDING OAuth creds (Client ID/Secret/Refresh Token) from user to go live.
-- Cash Sales (off-books): /api/cash-sales deducts stock, creates/links cash customer, flagged source='cash'; UI modal on Invoices with source badges.
+- Zoho Books sync — LIVE (connected 2026-07-16). Org 110000477883, Canada (.ca). Imported ~1180 invoices (Nov 2024→Jul 2026, full line items), 123 customers, 221 linked products. Rate-limit-safe design: header-only + capped detail; lightweight incremental sync (newest-first, stops at known) every 30 min + Sync Now. NOTE: Zoho plan cap is 1000 API calls/day; initial bulk import hit the cap once (resets daily) — steady-state usage is well under.
+- Cash Sales (off-books): /api/cash-sales deducts stock, creates/links cash customer, source='cash'; UI modal with source badges.
 - Tested: 17/17 backend, all frontend flows pass (iterations 1 & 2)
 
 ## Backlog / Remaining

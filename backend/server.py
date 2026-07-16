@@ -474,7 +474,7 @@ async def zoho_sync_now(user: dict = Depends(get_current_user)):
     if not zoho_sync.is_configured():
         raise HTTPException(status_code=400, detail="Zoho is not configured. Add your Client ID, Client Secret and Refresh Token.")
     try:
-        result = await zoho_sync.run_full_sync(db)
+        result = await zoho_sync.run_incremental(db)
         return result
     except Exception as e:
         logger.error(f"Zoho sync failed: {e}")
@@ -483,11 +483,13 @@ async def zoho_sync_now(user: dict = Depends(get_current_user)):
 
 async def zoho_scheduler():
     while True:
-        await asyncio.sleep(300)
+        await asyncio.sleep(1800)  # every 30 min (stays well within Zoho's 1000 calls/day)
         try:
             if zoho_sync.is_configured():
-                await zoho_sync.run_full_sync(db)
-                logger.info("Zoho auto-sync completed")
+                state = await db.zoho_sync_state.find_one({"_id": "state"}) or {}
+                if state.get("baseline_done"):
+                    res = await zoho_sync.run_incremental(db)
+                    logger.info(f"Zoho auto-sync: {res}")
         except Exception as e:
             logger.error(f"Zoho auto-sync error: {e}")
 
@@ -667,6 +669,14 @@ async def seed_data():
 async def startup():
     await db.users.create_index("email", unique=True)
     await db.login_attempts.create_index("identifier")
+    # dedupe any duplicate zoho invoices, then enforce uniqueness
+    pipeline = [{"$match": {"zoho_invoice_id": {"$exists": True}}},
+                {"$group": {"_id": "$zoho_invoice_id", "ids": {"$push": "$_id"}, "n": {"$sum": 1}}},
+                {"$match": {"n": {"$gt": 1}}}]
+    async for g in db.invoices.aggregate(pipeline):
+        for extra in g["ids"][1:]:
+            await db.invoices.delete_one({"_id": extra})
+    await db.invoices.create_index("zoho_invoice_id", unique=True, sparse=True)
     await seed_admin()
     await seed_data()
     asyncio.create_task(zoho_scheduler())
