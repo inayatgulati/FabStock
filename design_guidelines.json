@@ -1,0 +1,78 @@
+{
+  "theme": "dark",
+  "typography": {
+    "heading_font": "Cabinet Grotesk",
+    "body_font": "IBM Plex Sans",
+    "font_setup_instructions": "Import Cabinet Grotesk and IBM Plex Sans. Use them across the application.",
+    "rules": "BANNED: Inter, Roboto, Open Sans for headings. Use Cabinet Grotesk for an industrial, precise aesthetic. H1 maximum size is text-5xl with tracking-tight. Labels must be Uppercase + Tiny + Wide Spacing (tracking-[0.2em])."
+  },
+  "colors": {
+    "archetype": "Swiss & High-Contrast mixed with Tactical Minimalism",
+    "background": "zinc-950 (#09090b) - True Grey Base to reduce eye strain",
+    "surface": "zinc-900 (#18181b) - Layered elevation without excessive borders",
+    "border": "zinc-800 (#27272a)",
+    "primary_accent": "orange-500 (#f97316) - For low-stock alerts and critical actions",
+    "success_accent": "emerald-500 (#10b981) - For positive metrics and revenue",
+    "ai_accent": "blue-500 (#3b82f6) - For AI insights and predictive upsells",
+    "text_primary": "zinc-50 (#fafafa)",
+    "text_secondary": "zinc-400 (#a1a1aa)",
+    "rules": "Never use pure #000000. Use single saturated accents against a desaturated system. Hover states MUST explicitly set text color and background. No generic full-screen gradients."
+  },
+  "visual_enhancers": {
+    "surface_strategy": "Layered Elevation. Use Flat solid surfaces with subtle 1px inner borders (border-white/5). No muddy gray transparency.",
+    "ai_panel": "Use 'The Tracing Beam' strategy for the AI Insights panel to signal active technology without clutter.",
+    "borders": "Borderless Cards where possible, relying on elevation tokens (bg-zinc-900 vs bg-zinc-950) or Grid Borders (border-collapse style) for dense data tables."
+  },
+  "components": {
+    "cards": "Cardless or subtle 4px rounded corners (rounded-sm) with flat solid backgrounds.",
+    "tables": "Use Shadcn Table. Dense padding (p-2 or p-3). Zebra striping using bg-zinc-900/50 for alternate rows. Left-align data, right-align numbers/currency.",
+    "forms": "Use Shadcn Input, Select, Form. Never native inputs.",
+    "date_picker": "Use Shadcn calendar (NOT HTML input type='date').",
+    "dropdowns": "Use Shadcn dropdown-menu.",
+    "toasts": "Use Sonner for notifications.",
+    "charts": "Use Recharts. Line charts for sales trends, horizontal bars for product consumption. Tooltips must have dark bg-zinc-900 backgrounds to match the theme."
+  },
+  "grids": {
+    "strategy": "MODE B: High Density Grid (For Dashboards / Analytics).",
+    "base": "grid-cols-1 md:grid-cols-3 lg:grid-cols-4.",
+    "gaps": "Tight (gap-4 or gap-6).",
+    "rules": "Grid items must be direct children. Utilize h-full to stretch children. Apply Modified F-Pattern: KPIs top-left, Charts bottom/right."
+  },
+  "layouts": {
+    "dashboard": "Sidebar navigation (w-64) + Main content area. Top header with Page Title, Last Updated timestamp, and quick action (e.g., 'New Invoice').",
+    "spacing": "Generous Spacing Philosophy for layout containers (p-6 or p-8), tight spacing for dense tables/data grids.",
+    "alignment": "Left-align paragraphs, labels, and dense content. Right-align numeric values in tables."
+  },
+  "motion": {
+    "rules": "Minimalist - use micro-interactions for feedback. Hover states on all interactive elements (lift -translate-y-1 + subtle shadow).",
+    "transitions": "Use specific properties (transition-transform, transition-colors duration-200 ease-in-out). DO NOT use transition-all.",
+    "loading": "Use Skeleton Screens while data loads to preserve spatial structure and reduce perceived load time."
+  },
+  "accessibility": {
+    "contrast": "Ensure minimum 4.5:1 ratio for normal text. Use text-zinc-400 for secondary, text-zinc-50 for primary.",
+    "focus": "focus:ring-2 focus:ring-orange-500/50 focus:outline-none.",
+    "testing": "All interactive elements MUST include data-testid attributes (e.g., data-testid='login-submit-button')."
+  },
+  "media": {
+    "icons": "Use @phosphor-icons/react for dense dashboards. (Install: yarn add @phosphor-icons/react).",
+    "image_usage": "Limit images in the dashboard. Use product images strictly for the catalog.",
+    "empty_states": "Use subtle line-art icons and clear text for empty states (e.g., 'No low stock items')."
+  },
+  "3d_libraries": {
+    "decision": "Not required for this B2B dashboard. Focus on fast 2D data visualization using Recharts."
+  },
+  "image_urls": {
+    "login_background": {
+      "url": "https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2Mzl8MHwxfHNlYXJjaHwyfHxmYWJyaWNhdGlvbiUyMHdlbGRpbmclMjB0b29sc3xlbnwwfHx8fDE3ODQxNzQ0MTF8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Man using welding machine",
+      "category": "Authentication screen side-panel background"
+    },
+    "catalog_placeholder": {
+      "url": "https://images.unsplash.com/photo-1740914994657-f1cdffdc418e?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzNDR8MHwxfHNlYXJjaHwyfHxpbmR1c3RyaWFsJTIwd2FyZWhvdXNlJTIwaW52ZW50b3J5fGVufDB8fHx8MTc4NDE3NDQxMHww&ixlib=rb-4.1.0&q=85",
+      "description": "Industrial warehouse inventory",
+      "category": "Generic product/category placeholder"
+    }
+  },
+  "instructions_to_main_agent": "Implement a data-dense, dark-themed dashboard tailored for a Canadian fabrication tools supplier. Prioritize high legibility, using 'True Grey' (zinc) backgrounds over pure black. Emphasize low-stock alerts with orange/red accents. Use the 'Bento Grid Protocol' (Mode B) for dashboard widgets. The AI Insights panel should visually stand out slightly (e.g., a subtle border glow). Use Recharts for all graphs. Implement a sidebar navigation. All components must be accessible and responsive. DO NOT use generic center-aligned layouts. The project uses .js files, so generate .js code. Every interactive element needs a data-testid.",
+  "UNIVERSAL GUIDELINES FOR MAIN AGENT": "You tend to converge toward generic, 'on distribution' outputs. Avoid this: make creative, distinctive frontends. Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients. Create depth through layered design elements with z-index hierarchy. You MUST NOT apply universal transition (transition: all). You MUST NOT center align the app container. Use modern button styles like pill-shaped, or sharp button with interaction animations. Every interaction needs micro-animations. Use 2-3x more spacing than feels comfortable for outer containers. Subtle grain textures or noise overlays can separate good from extraordinary. NEVER use AI assistant Emoji characters. Prioritize using pre-existing components from src/components/ui. Use sonner for toasts (located in /app/src/components/ui/sonner.js). All interactive and key informational elements MUST include a data-testid attribute."
+}
