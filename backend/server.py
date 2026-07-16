@@ -371,7 +371,7 @@ async def get_customer(customer_id: str, user: dict = Depends(get_current_user))
 # ---------------- Invoices ----------------
 @api_router.get("/invoices")
 async def list_invoices(user: dict = Depends(get_current_user)):
-    docs = await db.invoices.find().sort("date", -1).to_list(1000)
+    docs = await db.invoices.find().sort([("date", -1), ("created_at", -1)]).to_list(1000)
     return [serialize(d) for d in docs]
 
 

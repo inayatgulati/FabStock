@@ -26,13 +26,15 @@ Business owner selling fabrication tools & materials to fabrication shops in Can
 - Invoices: create with line items, subtotal/HST/total, auto stock deduction
 - AI insights (Claude Sonnet 4.6): buying pattern / reorder predictions / upsell opportunities
 - Seed data: 10 fabrication products, 3 customers, ~18 invoices (9 months)
-- Tested: 12/12 backend, 9/9 frontend flows pass
+- Zoho Books sync engine (zoho_sync.py): pulls contacts→customers, items→products, invoices→invoices; keeps app's own stock ledger, subtracts Zoho sales post-baseline; auto-sync every 5 min + Sync Now. Region Canada (.ca), Org 11000077883. PENDING OAuth creds (Client ID/Secret/Refresh Token) from user to go live.
+- Cash Sales (off-books): /api/cash-sales deducts stock, creates/links cash customer, flagged source='cash'; UI modal on Invoices with source badges.
+- Tested: 17/17 backend, all frontend flows pass (iterations 1 & 2)
 
 ## Backlog / Remaining
+- BLOCKER for Zoho live: user must provide Zoho Self Client → Client ID, Client Secret, Refresh Token (added to backend/.env: ZOHO_CLIENT_ID/SECRET/REFRESH_TOKEN)
 - P1: Role-based access (restrict catalog mutations to admin)
-- P1: Invoice PDF export / Zoho sync
-- P2: Deterministic seed data, edit/delete customers UI, adjustment history view page
-- P2: Inventory-wide AI reorder report; email low-stock alerts
+- P1: Zoho webhook (real-time) instead of/alongside 5-min poll
+- P2: per-source revenue breakdown (cash vs zoho vs manual); prevent negative stock; invoice PDF export
 
 ## Next Tasks
 - Gather user feedback on analytics depth and whether Zoho integration is needed.
