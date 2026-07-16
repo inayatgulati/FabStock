@@ -1,0 +1,29 @@
+{
+  "summary": "Regression run after code-quality fixes (AuthContext useCallback/useMemo/cleanup, Invoices line-items stable crypto.randomUUID keys, backend_test env creds + LIVE Zoho state). Backend: 17/17 pytest pass. Frontend: unauth redirect, login->dashboard, session persistence (/auth/me 200), invoice modal 3-line add + remove-middle preserves row 0 & row 2 values (stable-key fix verified), Zoho page shows Connected/org 110000477883, Inventory/Customers/CustomerDetail w/ analytics + AI Insights all load, 'Sign out' redirects to /login, /auth/me 401 post-logout, post-logout protected route redirects to /login. No console errors from AuthContext.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Invoices modal (and other <option> lists)", "issues": ["React hydration warning: <span> cannot be a child of <option>. Emergent dev-instrumentation is wrapping option text in a <span data-ve-dynamic>, which triggers a hydration warning. This is instrumentation-related, not a production issue, but worth noting."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Invoices.js still uses index-based data-testid (invoice-product-${idx}) even though the internal keys are now UUIDs — fine for testability, just noting the id/testid dichotomy is intentional.",
+    "Prior review comments from iteration_2 still stand: list_invoices sort by date-only string, no stock<0 guard on POST /api/invoices and /api/cash-sales, zoho_scheduler multi-worker double-run risk, cash customer name+is_cash collapse.",
+    "Layout Sign out is a plain link/text without a data-testid — adding data-testid=\"sign-out\" would make logout regression tests more robust."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (17/17)", "frontend": "100% (all requested regression flows verified)"},
+  "test_credentials": "owner@fabsupply.ca / FabSupply2026! (httpOnly access_token cookie, withCredentials axios) — verified working",
+  "seed_data_creation": "None new this iteration beyond pytest TEST_* products auto-cleaned; no UI-created invoices/cash sales this run.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Zoho is now LIVE (configured=true, org_id=110000477883, baseline_done=true, zoho_invoice_count~1180). DO NOT trigger POST /api/zoho/sync — daily quota exhausted, will 502 by design. Dashboard route is '/' (not '/dashboard'). Customers page renders CARDS (not <table> rows) — click by name text. Logout button label is 'Sign out' (no data-testid yet). Stable-key fix in Invoices.js confirmed working via UUID (l._k) so remove-middle preserves other rows.",
+  "rca of the issue": "No issues found. The AuthContext refactor and Invoices stable-key fix work as intended. The only cosmetic observation is a dev-instrumentation <span> inside <option> hydration warning, which is emitted by the Emergent x-* attribute wrapper, not app code."
+}

@@ -6,8 +6,8 @@ import requests
 
 BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://fab-tools-hub-1.preview.emergentagent.com").rstrip("/")
 API = f"{BASE_URL}/api"
-ADMIN_EMAIL = "owner@fabsupply.ca"
-ADMIN_PASSWORD = "FabSupply2026!"
+ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "owner@fabsupply.ca")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "FabSupply2026!")
 
 
 @pytest.fixture(scope="session")
@@ -140,19 +140,21 @@ class TestInvoices:
 
 # ---------------- Zoho ----------------
 class TestZoho:
-    def test_status_not_configured(self, auth_client):
+    def test_status_configured(self, auth_client):
         r = auth_client.get(f"{API}/zoho/status")
         assert r.status_code == 200
         d = r.json()
-        assert d["configured"] is False
-        assert d["org_id"] == "11000077883"
-        assert d["baseline_done"] is False
+        assert d["configured"] is True
+        assert d["org_id"] == "110000477883"
+        assert d["baseline_done"] is True
         assert "zoho_invoice_count" in d
 
-    def test_sync_returns_400_when_not_configured(self, auth_client):
-        r = auth_client.post(f"{API}/zoho/sync")
-        assert r.status_code == 400
-        assert "not configured" in r.json()["detail"].lower()
+    def test_zoho_invoices_have_source_tag(self, auth_client):
+        # Zoho-synced invoices should be tagged source='zoho' and appear in the list
+        r = auth_client.get(f"{API}/invoices")
+        assert r.status_code == 200
+        invs = r.json()
+        assert any(i.get("source") == "zoho" for i in invs)
 
 
 # ---------------- Cash Sales ----------------

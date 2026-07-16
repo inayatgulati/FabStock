@@ -11,13 +11,13 @@ export default function Invoices() {
   const qc = useQueryClient();
   const [show, setShow] = useState(false);
   const [customerId, setCustomerId] = useState("");
-  const [lines, setLines] = useState([{ product_id: "", qty: 1 }]);
+  const [lines, setLines] = useState([{ _k: crypto.randomUUID(), product_id: "", qty: 1 }]);
   const [notes, setNotes] = useState("");
   const [showCash, setShowCash] = useState(false);
   const [cashMode, setCashMode] = useState("new"); // new | existing
   const [cashName, setCashName] = useState("");
   const [cashCustomerId, setCashCustomerId] = useState("");
-  const [cashLines, setCashLines] = useState([{ product_id: "", qty: 1 }]);
+  const [cashLines, setCashLines] = useState([{ _k: crypto.randomUUID(), product_id: "", qty: 1 }]);
   const [cashNote, setCashNote] = useState("");
 
   const { data: invoices = [] } = useQuery({
@@ -58,7 +58,7 @@ export default function Invoices() {
   const reset = () => {
     setShow(false);
     setCustomerId("");
-    setLines([{ product_id: "", qty: 1 }]);
+    setLines([{ _k: crypto.randomUUID(), product_id: "", qty: 1 }]);
     setNotes("");
   };
 
@@ -87,7 +87,7 @@ export default function Invoices() {
     setCashMode("new");
     setCashName("");
     setCashCustomerId("");
-    setCashLines([{ product_id: "", qty: 1 }]);
+    setCashLines([{ _k: crypto.randomUUID(), product_id: "", qty: 1 }]);
     setCashNote("");
   };
 
@@ -172,7 +172,7 @@ export default function Invoices() {
             <label className="label-eyebrow block mb-2">Line Items</label>
             <div className="space-y-2 mb-4">
               {lines.map((l, idx) => (
-                <div key={idx} className="flex gap-2 items-center">
+                <div key={l._k} className="flex gap-2 items-center">
                   <select
                     data-testid={`invoice-product-${idx}`}
                     value={l.product_id}
@@ -207,7 +207,7 @@ export default function Invoices() {
             </div>
             <button
               data-testid="add-line-button"
-              onClick={() => setLines([...lines, { product_id: "", qty: 1 }])}
+              onClick={() => setLines([...lines, { _k: crypto.randomUUID(), product_id: "", qty: 1 }])}
               className="text-xs text-zinc-400 hover:text-primary flex items-center gap-1 mb-6 transition-colors duration-200"
             >
               <Plus className="h-3 w-3" /> Add line
@@ -284,7 +284,7 @@ export default function Invoices() {
             <label className="label-eyebrow block mb-2">Line Items</label>
             <div className="space-y-2 mb-4">
               {cashLines.map((l, idx) => (
-                <div key={idx} className="flex gap-2 items-center">
+                <div key={l._k} className="flex gap-2 items-center">
                   <select
                     data-testid={`cash-product-${idx}`}
                     value={l.product_id}
@@ -318,7 +318,7 @@ export default function Invoices() {
             </div>
             <button
               data-testid="cash-add-line"
-              onClick={() => setCashLines([...cashLines, { product_id: "", qty: 1 }])}
+              onClick={() => setCashLines([...cashLines, { _k: crypto.randomUUID(), product_id: "", qty: 1 }])}
               className="text-xs text-zinc-400 hover:text-primary flex items-center gap-1 mb-4 transition-colors duration-200"
             >
               <Plus className="h-3 w-3" /> Add line
