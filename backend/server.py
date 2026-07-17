@@ -250,20 +250,18 @@ async def list_adjustments(user: dict = Depends(get_current_user)):
 @api_router.get("/customers")
 async def list_customers(user: dict = Depends(get_current_user)):
     docs = await db.customers.find().sort("name", 1).to_list(5000)
-    all_invoices = await db.invoices.find({}, {"customer_id": 1, "total": 1, "date": 1}).to_list(200000)
-    invoice_map = defaultdict(list)
-    for inv in all_invoices:
-        invoice_map[inv.get("customer_id")].append(inv)
+    agg = await db.invoices.aggregate([
+        {"$group": {"_id": "$customer_id", "total": {"$sum": "$total"},
+                    "count": {"$sum": 1}, "last": {"$max": "$date"}}}
+    ]).to_list(100000)
+    stats = {a["_id"]: a for a in agg}
     out = []
     for c in docs:
-        cid = str(c["_id"])
-        invoices = invoice_map.get(cid, [])
-        total = sum(i["total"] for i in invoices)
-        last = max([i["date"] for i in invoices], default=None)
+        s = stats.get(str(c["_id"]), {})
         item = serialize(c)
-        item["total_spent"] = round(total, 2)
-        item["order_count"] = len(invoices)
-        item["last_order"] = last
+        item["total_spent"] = round(s.get("total", 0.0), 2)
+        item["order_count"] = s.get("count", 0)
+        item["last_order"] = s.get("last")
         out.append(item)
     return out
 
@@ -501,50 +499,56 @@ async def zoho_scheduler():
 # ---------------- Dashboard ----------------
 @api_router.get("/dashboard/stats")
 async def dashboard_stats(user: dict = Depends(get_current_user)):
-    products = await db.products.find().to_list(1000)
+    total_products = await db.products.count_documents({})
     customers_count = await db.customers.count_documents({})
-    invoices = await db.invoices.find().to_list(2000)
+    invoice_count = await db.invoices.count_documents({})
 
-    low_stock = [serialize(p) for p in products if p["stock_qty"] <= p.get("low_stock_threshold", 10)]
-    inventory_value = round(sum(p["stock_qty"] * p.get("cost", 0) for p in products), 2)
+    # Low stock (query only matching products) + inventory value (aggregation)
+    low_docs = await db.products.find(
+        {"$expr": {"$lte": ["$stock_qty", "$low_stock_threshold"]}}).to_list(2000)
+    low_stock = [serialize(p) for p in low_docs]
+    iv = await db.products.aggregate([
+        {"$group": {"_id": None,
+                    "v": {"$sum": {"$multiply": ["$stock_qty", {"$ifNull": ["$cost", 0]}]}}}}
+    ]).to_list(1)
+    inventory_value = round(iv[0]["v"], 2) if iv else 0.0
+
+    # Revenue by month (server-side aggregation)
+    month_agg = await db.invoices.aggregate([
+        {"$group": {"_id": {"$substrBytes": ["$date", 0, 7]}, "revenue": {"$sum": "$total"}}}
+    ]).to_list(1000)
+    monthly = {m["_id"]: m["revenue"] for m in month_agg}
+    total_revenue = round(sum(monthly.values()), 2)
 
     now = datetime.now(timezone.utc)
     this_month = now.strftime("%Y-%m")
-    month_revenue = round(sum(i["total"] for i in invoices if i["date"][:7] == this_month), 2)
-    total_revenue = round(sum(i["total"] for i in invoices), 2)
+    month_revenue = round(monthly.get(this_month, 0.0), 2)
 
-    # revenue chart last 6 months
-    monthly = defaultdict(float)
-    for i in invoices:
-        monthly[i["date"][:7]] += i["total"]
     chart = []
     for k in range(5, -1, -1):
-        y = now.year
-        m = now.month - k
+        y, m = now.year, now.month - k
         while m <= 0:
             m += 12
             y -= 1
         key = f"{y:04d}-{m:02d}"
         chart.append({"month": key, "revenue": round(monthly.get(key, 0.0), 2)})
 
-    # top products by revenue
-    prod_rev = defaultdict(float)
-    prod_qty = defaultdict(float)
-    names = {}
-    for i in invoices:
-        for it in i["items"]:
-            prod_rev[it["product_id"]] += it["line_total"]
-            prod_qty[it["product_id"]] += it["qty"]
-            names[it["product_id"]] = it["name"]
-    top_products = sorted(
-        [{"name": names[p], "revenue": round(r, 2), "qty": round(prod_qty[p], 2)} for p, r in prod_rev.items()],
-        key=lambda x: x["revenue"], reverse=True)[:5]
+    # Top products by revenue (unwind + group server-side)
+    top_agg = await db.invoices.aggregate([
+        {"$unwind": "$items"},
+        {"$group": {"_id": "$items.product_id", "revenue": {"$sum": "$items.line_total"},
+                    "qty": {"$sum": "$items.qty"}, "name": {"$last": "$items.name"}}},
+        {"$sort": {"revenue": -1}},
+        {"$limit": 5},
+    ]).to_list(5)
+    top_products = [{"name": t.get("name", "Item"), "revenue": round(t["revenue"], 2),
+                     "qty": round(t["qty"], 2)} for t in top_agg]
 
     return {
-        "total_products": len(products),
+        "total_products": total_products,
         "low_stock_count": len(low_stock),
         "customers_count": customers_count,
-        "invoice_count": len(invoices),
+        "invoice_count": invoice_count,
         "month_revenue": month_revenue,
         "total_revenue": total_revenue,
         "inventory_value": inventory_value,
