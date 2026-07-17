@@ -6,8 +6,8 @@ import { Boxes, Loader2 } from "lucide-react";
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("owner@fabsupply.ca");
-  const [password, setPassword] = useState("FabSupply2026!");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 

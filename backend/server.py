@@ -384,8 +384,10 @@ async def create_invoice(data: InvoiceInput, user: dict = Depends(get_current_us
         raise HTTPException(status_code=404, detail="Customer not found")
     items = []
     subtotal = 0.0
+    product_ids = [ObjectId(it.product_id) for it in data.items]
+    products_map = {str(p["_id"]): p for p in await db.products.find({"_id": {"$in": product_ids}}).to_list(500)}
     for it in data.items:
-        product = await db.products.find_one({"_id": ObjectId(it.product_id)})
+        product = products_map.get(it.product_id)
         if not product:
             raise HTTPException(status_code=404, detail=f"Product {it.product_id} not found")
         line_total = round(product["price"] * it.qty, 2)
@@ -441,8 +443,10 @@ async def create_cash_sale(data: CashSaleInput, user: dict = Depends(get_current
 
     items = []
     subtotal = 0.0
+    product_ids = [ObjectId(it.product_id) for it in data.items]
+    products_map = {str(p["_id"]): p for p in await db.products.find({"_id": {"$in": product_ids}}).to_list(500)}
     for it in data.items:
-        product = await db.products.find_one({"_id": ObjectId(it.product_id)})
+        product = products_map.get(it.product_id)
         if not product:
             raise HTTPException(status_code=404, detail=f"Product {it.product_id} not found")
         line_total = round(product["price"] * it.qty, 2)
