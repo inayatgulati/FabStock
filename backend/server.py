@@ -249,11 +249,15 @@ async def list_adjustments(user: dict = Depends(get_current_user)):
 # ---------------- Customers ----------------
 @api_router.get("/customers")
 async def list_customers(user: dict = Depends(get_current_user)):
-    docs = await db.customers.find().sort("name", 1).to_list(1000)
+    docs = await db.customers.find().sort("name", 1).to_list(5000)
+    all_invoices = await db.invoices.find({}, {"customer_id": 1, "total": 1, "date": 1}).to_list(200000)
+    invoice_map = defaultdict(list)
+    for inv in all_invoices:
+        invoice_map[inv.get("customer_id")].append(inv)
     out = []
     for c in docs:
         cid = str(c["_id"])
-        invoices = await db.invoices.find({"customer_id": cid}).to_list(1000)
+        invoices = invoice_map.get(cid, [])
         total = sum(i["total"] for i in invoices)
         last = max([i["date"] for i in invoices], default=None)
         item = serialize(c)
@@ -677,6 +681,8 @@ async def startup():
         for extra in g["ids"][1:]:
             await db.invoices.delete_one({"_id": extra})
     await db.invoices.create_index("zoho_invoice_id", unique=True, sparse=True)
+    await db.invoices.create_index("customer_id")
+    await db.invoices.create_index("source")
     await seed_admin()
     await seed_data()
     asyncio.create_task(zoho_scheduler())
