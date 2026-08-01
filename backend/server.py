@@ -528,6 +528,15 @@ async def dashboard_stats(user: dict = Depends(get_current_user)):
     this_month = now.strftime("%Y-%m")
     month_revenue = round(monthly.get(this_month, 0.0), 2)
 
+    # Cash-only (off-books) revenue
+    cash_agg = await db.invoices.aggregate([
+        {"$match": {"source": "cash"}},
+        {"$group": {"_id": {"$substrBytes": ["$date", 0, 7]}, "revenue": {"$sum": "$total"}}}
+    ]).to_list(1000)
+    cash_monthly = {m["_id"]: m["revenue"] for m in cash_agg}
+    cash_total_revenue = round(sum(cash_monthly.values()), 2)
+    cash_month_revenue = round(cash_monthly.get(this_month, 0.0), 2)
+
     chart = []
     for k in range(5, -1, -1):
         y, m = now.year, now.month - k
@@ -555,6 +564,8 @@ async def dashboard_stats(user: dict = Depends(get_current_user)):
         "invoice_count": invoice_count,
         "month_revenue": month_revenue,
         "total_revenue": total_revenue,
+        "cash_month_revenue": cash_month_revenue,
+        "cash_total_revenue": cash_total_revenue,
         "inventory_value": inventory_value,
         "low_stock_items": low_stock,
         "revenue_chart": chart,

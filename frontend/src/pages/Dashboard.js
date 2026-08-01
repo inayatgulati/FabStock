@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import api, { cad } from "@/lib/api";
 import { PageHeader } from "@/components/PageHeader";
-import { Package, Users, FileText, DollarSign, AlertTriangle, TrendingUp } from "lucide-react";
+import { Package, Users, FileText, DollarSign, AlertTriangle, TrendingUp, Banknote } from "lucide-react";
 import {
   BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip, LineChart, Line, CartesianGrid,
 } from "recharts";
@@ -46,8 +46,9 @@ export default function Dashboard() {
       </PageHeader>
 
       <div className="p-8 space-y-6 fade-up">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
           <Stat testid="stat-month-revenue" icon={DollarSign} label="Revenue (This Month)" value={cad(data.month_revenue)} accent="text-emerald-500" />
+          <Stat testid="stat-cash-revenue" icon={Banknote} label="Cash Revenue (Month)" value={cad(data.cash_month_revenue)} accent="text-primary" />
           <Stat testid="stat-inventory-value" icon={Package} label="Inventory Value" value={cad(data.inventory_value)} />
           <Stat testid="stat-customers" icon={Users} label="Customers" value={data.customers_count} />
           <Stat testid="stat-lowstock" icon={AlertTriangle} label="Low Stock Items" value={data.low_stock_count} accent="text-primary" />
